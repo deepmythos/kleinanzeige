@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de"> <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI eBay Kleinanzeigen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="p-4 md:p-8">
+    <div class="app-container p-6 md:p-8 rounded-xl shadow-xl">
+        <div id="menuIcon" class="menu-icon">
+            <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title data-translate-key="menuLabel">Menü</title><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"/></svg>
+        </div>
+
+        <header class="text-center mb-8 pt-8"> 
+            <h1 class="text-3xl font-bold text-gray-800" data-translate-key="appTitle">📸 eBay Kleinanzeigen Helfer <span class="text-blue-600">AI</span></h1>
+            <p class="text-gray-600 mt-2" data-translate-key="appSubtitle">Mehrere Fotos hochladen, Dinge erkennen & Preis vorschlagen lassen! (via Google Gemini)</p>
+        </header>
+
+        <div class="mb-6">
+            <label for="imageUpload" class="block text-sm font-medium text-gray-700 mb-2" data-translate-key="uploadLabel">1. Bilder hochladen (bis zu 5; bevorzugt: PNG, JPG, WEBP, GIF):</label>
+            <input type="file" id="imageUpload" accept="image/jpeg, image/png, image/webp, image/gif, image/avif, image/*" multiple class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-lg file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100
+            "/>
+        </div>
+
+        <div id="imagePreviewContainer" class="mb-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2" data-translate-key="imagePreviewTitle">Vorschau der Bilder:</h3>
+            <div id="imagePreviewGrid" class="image-preview-grid">
+                </div>
+        </div>
+        
+        <div id="statusArea" class="mb-6 text-center">
+            <div id="loadingSpinner" class="spinner mx-auto hidden"></div>
+            <p id="statusMessage" class="text-gray-600 mt-2" style="white-space: pre-line;"></p>
+        </div>
+
+        <div id="identifiedItemsContainer" class="mb-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2" data-translate-key="identifiedItemsTitle">🔍 Erkannte Gegenstände (aus allen Bildern):</h3>
+            <p id="identifiedItemsText" class="p-3 bg-gray-50 rounded-md text-gray-700 border border-gray-200" style="white-space: pre-line;"></p>
+        </div>
+        
+        <div id="aiPriceSuggestionContainer" class="mb-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2" data-translate-key="priceSuggestionTitle">💰 KI Preisvorschlag (basierend auf Analyse):</h3>
+            <p id="aiPriceSuggestionText" class="p-4 bg-yellow-50 rounded-lg text-yellow-800 border border-yellow-300 text-base md:text-lg leading-relaxed" style="white-space: pre-line;"></p>
+            <p class="text-xs text-gray-500 mt-1" data-translate-key="priceSuggestionDisclaimer">Dies ist ein Schätzwert basierend auf KI-Analyse und simuliertem Vergleich.</p>
+        </div>
+
+        <div class="my-6 text-center p-4 bg-gray-100 rounded-lg">
+            <label class="block text-sm font-medium text-gray-700 mb-2" data-translate-key="aiContentLangLabel">Sprache für KI-generierten Inhalt:</label>
+            <div>
+                <button id="aiContentLang-de" class="lang-button">Deutsch</button>
+                <button id="aiContentLang-en" class="lang-button ml-2">English</button>
+                <button id="aiContentLang-vi" class="lang-button ml-2">Tiếng Việt</button>
+            </div>
+        </div>
+
+
+        <div id="adContainer" class="mb-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2" data-translate-key="generatedAdTitle">📝 Generierte eBay Kleinanzeige:</h3>
+            <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                <div id="adTitleContainer" class="mb-3">
+                     <div class="flex justify-between items-center mb-1">
+                        <label for="adTitle" class="block text-xs font-medium text-gray-500" data-translate-key="adFieldTitle">Titel:</label>
+                        <button id="suggestTitlesBtn" class="feature-button text-xs font-semibold py-1 px-2 rounded-md transition duration-150 ease-in-out" data-translate-key="suggestTitlesBtn">
+                            ✨ Andere Titelideen
+                        </button>
+                     </div>
+                     <input type="text" id="adTitle" readonly class="w-full p-2 border border-gray-300 rounded-md bg-white">
+                </div>
+                <div id="alternativeTitlesContainer" class="mb-3 hidden">
+                    <h4 class="text-sm font-medium text-gray-600 mb-1" data-translate-key="alternativeTitlesHeader">Alternative Titelvorschläge:</h4>
+                    <ul id="alternativeTitlesList" class="list-disc list-inside text-sm text-gray-700 bg-blue-50 p-2 rounded-md"></ul>
+                </div>
+                <div id="adBodyContainer">
+                    <label for="adBody" class="block text-xs font-medium text-gray-500" data-translate-key="adFieldBody">Anzeigentext:</label>
+                    <textarea id="adBody" rows="10" readonly class="w-full p-2 border border-gray-300 rounded-md bg-white"></textarea>
+                </div>
+            </div>
+            <div class="mt-3 flex justify-between items-center">
+                <button id="previousAdVersionBtn" class="nav-button bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg text-sm transition duration-150 ease-in-out" disabled data-translate-key="prevVersionBtn">
+                    &lt; Vorherige
+                </button>
+                <span id="adVersionInfo" class="text-xs text-gray-500" data-translate-key="versionInfoBase" data-base-text="Version">Version 0/0</span>
+                <button id="nextAdVersionBtn" class="nav-button bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg text-sm transition duration-150 ease-in-out" disabled data-translate-key="nextVersionBtn">
+                    Nächste &gt;
+                </button>
+            </div>
+            <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                <button id="copyAdButton" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 ease-in-out" data-translate-key="copyAdBtn">
+                    Anzeige kopieren
+                </button>
+                <button id="regenerateAdCreativeBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 ease-in-out" data-translate-key="newCreativeBtn">
+                    ✨ Neue kreative Version
+                </button>
+            </div>
+             <div class="mt-4">
+                <button id="suggestKeywordsBtn" class="w-full feature-button font-semibold py-2 px-4 rounded-lg transition duration-150 ease-in-out" data-translate-key="suggestKeywordsBtn">
+                    ✨ Keywords & Hashtags vorschlagen
+                </button>
+            </div>
+        </div>
+        
+        <div id="keywordsContainer" class="mb-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2" data-translate-key="keywordsTitle">🔑 Vorgeschlagene Keywords & Hashtags:</h3>
+            <div id="keywordsText" class="p-3 bg-gray-50 rounded-md text-gray-700 border border-gray-200" style="white-space: pre-line;"></div>
+        </div>
+    </div>
+
+    <div id="settingsModalOverlay" class="settings-modal-overlay">
+        <div class="settings-modal-content">
+            <h2 data-translate-key="settingsTitle">Einstellungen</h2>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2" data-translate-key="appLangLabel">App-Sprache:</label>
+                <div>
+                    <button id="modal-lang-de" class="lang-button">Deutsch</button>
+                    <button id="modal-lang-en" class="lang-button ml-2">English</button>
+                    <button id="modal-lang-vi" class="lang-button ml-2">Tiếng Việt</button>
+                </div>
+            </div>
+            <div class="text-right">
+                <button id="closeSettingsModalBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md" data-translate-key="closeBtn">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastNotification" class="toast"></div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
